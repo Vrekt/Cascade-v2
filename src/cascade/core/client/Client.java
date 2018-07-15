@@ -43,7 +43,7 @@ public class Client extends Connection {
                     if (packet instanceof PacketMessage) {
                         PacketMessage message = (PacketMessage) packet;
                         String username = message.getUsername();
-                        int uniqueId = message.getUniqueId();
+                        int uniqueId = CascadeServer.getBackend().getIDFromUsername(username);
 
                         CascadeServer.log("[" + uniqueId + "] [" + username + "] >> " + message.getMessage(), LogLevel.INFO);
                         CascadeServer.getBackend().sendPacketToAllClients(packet);

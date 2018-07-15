@@ -87,6 +87,9 @@ public class ServerBackend {
 
         CascadeServer.log("Connected new client with the username: " + username + " and an ID of: " + uniqueId, LogLevel.INFO);
         Client client = new Client(new Session(username, uniqueId), socket, in, out);
+
+        // send the clients ID to them.
+
         client.setLastKeepAlive(System.currentTimeMillis());
         client.start();
 
@@ -129,6 +132,20 @@ public class ServerBackend {
      */
     public void sendPacketToAllClients(Packet packet) {
         clientMap.values().forEach(client -> client.write(packet));
+    }
+
+    /**
+     * @param username their username.
+     * @return the clients ID from their username.
+     */
+    public int getIDFromUsername(String username) {
+        Client c = clientMap.values().stream().filter(client -> client.getSession().getUsername().equals(username)).findAny().orElse(null);
+        if (c == null) {
+            CascadeServer.log("Could not find the ID for user: " + username, LogLevel.WARN);
+            return -1;
+        }
+
+        return c.getSession().getUniqueId();
     }
 
     /**
