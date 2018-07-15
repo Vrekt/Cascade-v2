@@ -38,7 +38,7 @@ max_connection_threads: 10
 ```
 
 # Launching
-Cascade can be launched with the following options
+Cascade can be launched with the following options, (not including <>)
 
 ```
 java -jar Cascade.jar <port> <auth-type(basic, password, none)> <password>(OPTIONAL) <config-file-path>
