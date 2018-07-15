@@ -29,6 +29,21 @@ public class ConnectionHandler {
      */
     public void connectNewClient(Socket socket) {
         Thread.currentThread().setName(socket.getInetAddress().toString());
+
+        boolean duplicateIPCheck = CascadeServer.getBackend().getConfiguration().getState("duplicate_ip_checking");
+        if (duplicateIPCheck) {
+            String ip = socket.getInetAddress().getHostAddress();
+            if (CascadeServer.getBackend().isIPAlreadyConnected(ip)) {
+                CascadeServer.log("Kicking new client for having a duplicate IP: " + ip, LogLevel.WARN);
+                try {
+                    socket.close();
+                } catch (IOException exception) {
+                    // do nothing.
+                }
+                return;
+            }
+        }
+
         CascadeServer.log("Connecting new client...", LogLevel.INFO);
         try {
             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
@@ -53,7 +68,7 @@ public class ConnectionHandler {
                 PacketMessage message = (PacketMessage) packet;
                 String password = message.getMessage();
                 if (CascadeServer.getBackend().checkPassword(password)) {
-                    authenticate(socket, in, out, true);
+                    authenticate(socket, in, out);
                     return;
                 } else {
                     out.writeObject(new PacketConnectionStatus(ConnectionStatus.DISCONNECTED));
@@ -65,7 +80,7 @@ public class ConnectionHandler {
                 }
             }
 
-            authenticate(socket, in, out, type == AuthenticationType.BASIC);
+            authenticate(socket, in, out);
         } catch (IOException | ClassNotFoundException exception) {
             CascadeServer.log("Could not connect new client.", LogLevel.INFO);
         }
@@ -75,12 +90,11 @@ public class ConnectionHandler {
     /**
      * Authenticate a new client connecting.
      *
-     * @param socket         their socket connection.
-     * @param in             the data stream
-     * @param out            the data stream
-     * @param verifyUsername if true the client will be kicked if another username exists.
+     * @param socket their socket connection.
+     * @param in     the data stream
+     * @param out    the data stream
      */
-    private void authenticate(Socket socket, ObjectInputStream in, ObjectOutputStream out, boolean verifyUsername) {
+    private void authenticate(Socket socket, ObjectInputStream in, ObjectOutputStream out) {
         // tell the client we are authenticating.
         try {
             out.writeObject(new PacketConnectionStatus(ConnectionStatus.AUTHENTICATING));
@@ -103,12 +117,22 @@ public class ConnectionHandler {
                 return;
             }
 
+            int maxCharacters = CascadeServer.getBackend().getConfiguration().getValue("max_username_characters");
+            if (username.length() > maxCharacters) {
+                CascadeServer.log("Disconnecting client for having a username over " + maxCharacters + " characters.", LogLevel.WARN);
+                socket.close();
+                in.close();
+                out.close();
+                return;
+            }
+
+            boolean verifyUsername = CascadeServer.getBackend().getConfiguration().getState("duplicate_name_checking");
             if (verifyUsername) {
                 boolean taken = CascadeServer.getBackend().isUsernameTaken(username);
                 if (taken) {
                     CascadeServer.log("Kicking client for duplicate name.", LogLevel.INFO);
                     out.writeObject(new PacketConnectionStatus(ConnectionStatus.DISCONNECTED));
-                    out.writeObject(new PacketMessage("You have been kicked because this user already exists.", "", 0));
+                    out.writeObject(new PacketMessage("You have been kicked because this user already exists."));
                     socket.close();
                     in.close();
                     out.close();

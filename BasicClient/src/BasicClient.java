@@ -31,7 +31,12 @@ public class BasicClient {
     private ExecutorService service = Executors.newFixedThreadPool(3);
 
     public static void main(String[] args) {
-        new BasicClient("Vrekt", "localhost", 1569);
+
+        Scanner i = new Scanner(System.in);
+        String user = i.nextLine();
+        String ip = i.nextLine();
+
+        new BasicClient(user, ip, 1569);
     }
 
     public BasicClient(String username, String server, int port) {

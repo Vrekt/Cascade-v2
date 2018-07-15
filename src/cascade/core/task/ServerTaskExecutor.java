@@ -1,5 +1,7 @@
 package cascade.core.task;
 
+import cascade.core.CascadeServer;
+import cascade.core.LogLevel;
 import cascade.core.backend.ServerBackend;
 import cascade.core.task.tasks.TaskConnectClients;
 import cascade.core.task.tasks.TaskVerifyClients;
@@ -41,6 +43,9 @@ public class ServerTaskExecutor {
         scheduledExecutor.scheduleWithFixedDelay(() -> {
             taskVerifyClients.execute();
         }, 1000, 1000, TimeUnit.MILLISECONDS);
+
+        CascadeServer.log("Server has been started!", LogLevel.INFO);
+
     }
 
     /**

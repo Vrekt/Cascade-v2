@@ -2,14 +2,14 @@ package cascade.core.client.session;
 
 public class Session {
 
-    private final String username;
+    private final String username, ip;
     private final int uniqueId;
-
     private long ping;
 
-    public Session(String username, int uniqueId) {
+    public Session(String username, int uniqueId, String ip) {
         this.username = username;
         this.uniqueId = uniqueId;
+        this.ip = ip;
     }
 
     public String getUsername() {
@@ -28,4 +28,7 @@ public class Session {
         this.ping = ping;
     }
 
+    public String getIp() {
+        return ip;
+    }
 }

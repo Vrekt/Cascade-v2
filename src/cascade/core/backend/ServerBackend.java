@@ -5,12 +5,15 @@ import cascade.core.LogLevel;
 import cascade.core.authentication.ConnectionHandler;
 import cascade.core.client.Client;
 import cascade.core.client.session.Session;
+import cascade.core.configuration.ConfigurationFile;
+import cascade.core.configuration.settings.Configuration;
 import cascade.core.task.ServerTaskExecutor;
 import protocol.Packet;
 import protocol.connection.AuthenticationType;
 import protocol.connection.ConnectionStatus;
 import protocol.packets.PacketConnectionStatus;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -24,12 +27,14 @@ public class ServerBackend {
     private Map<Integer, Client> clientMap = new ConcurrentHashMap<>();
     private Map<Socket, Long> authenticationTimeoutMap = new ConcurrentHashMap<>();
 
+    private final Configuration configuration = new Configuration();
     private String password;
 
     private boolean running = true;
     private final ConnectionHandler connectionHandler;
 
     private final ServerTaskExecutor executor = new ServerTaskExecutor(this);
+    private int authenticationTimeout = 0, keepAliveTimeout = 0;
 
     public ServerBackend(AuthenticationType type) {
         connectionHandler = new ConnectionHandler(type);
@@ -43,8 +48,16 @@ public class ServerBackend {
     /**
      * Start the server,
      */
-    public void start(ServerSocket socket) {
+    public void start(ServerSocket socket, File configFile) {
         CascadeServer.log("Starting server...", LogLevel.INFO);
+
+        // load config
+        ConfigurationFile.load(configFile);
+        // set timeout values
+
+        authenticationTimeout = configuration.getValue("authentication_timeout_seconds") * 1000;
+        keepAliveTimeout = configuration.getValue("keepalive_timeout_seconds") * 1000;
+
         executor.start(socket);
     }
 
@@ -86,7 +99,7 @@ public class ServerBackend {
         authenticationTimeoutMap.remove(socket);
 
         CascadeServer.log("Connected new client with the username: " + username + " and an ID of: " + uniqueId, LogLevel.INFO);
-        Client client = new Client(new Session(username, uniqueId), socket, in, out);
+        Client client = new Client(new Session(username, uniqueId, socket.getInetAddress().getHostAddress()), socket, in, out);
 
         // send the clients ID to them.
 
@@ -126,6 +139,14 @@ public class ServerBackend {
     }
 
     /**
+     * @param ip the IP of the client
+     * @return returns true if the IP is already connected.
+     */
+    public boolean isIPAlreadyConnected(String ip) {
+        return clientMap.values().stream().anyMatch(client -> client.getSession().getIp().equals(ip));
+    }
+
+    /**
      * Send a packet to all connected clients.
      *
      * @param packet the packet.
@@ -154,7 +175,7 @@ public class ServerBackend {
     public void verify() {
         for (Socket socket : authenticationTimeoutMap.keySet()) {
             long time = System.currentTimeMillis() - authenticationTimeoutMap.get(socket);
-            if (time >= 10000) {
+            if (time >= authenticationTimeout) {
                 // took too long to authenticate.
                 try {
                     socket.close();
@@ -167,7 +188,7 @@ public class ServerBackend {
 
         for (Client client : clientMap.values()) {
             long time = System.currentTimeMillis() - client.getLastKeepAlive();
-            if (time >= 5000) {
+            if (time >= keepAliveTimeout) {
                 //timed out.
                 clientDisconnected(client);
             }
@@ -187,5 +208,12 @@ public class ServerBackend {
      */
     public ConnectionHandler getConnectionHandler() {
         return connectionHandler;
+    }
+
+    /**
+     * @return the configuration
+     */
+    public Configuration getConfiguration() {
+        return configuration;
     }
 }

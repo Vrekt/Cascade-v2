@@ -13,14 +13,17 @@ import java.util.concurrent.Executors;
 
 public class TaskConnectClients implements IServerTask {
 
-    // TODO: Server configuration, 10 is the max clients that are able to connect and wait at the auth prompt.
-    private final ExecutorService connectionExecutor = Executors.newFixedThreadPool(10);
+    private final ExecutorService connectionExecutor;
     private final ServerBackend backend;
     private final ServerSocket server;
 
     public TaskConnectClients(ServerBackend backend, ServerSocket socket) {
         this.server = socket;
         this.backend = backend;
+
+        // set the amount of threads.
+        int threads = CascadeServer.getBackend().getConfiguration().getValue("max_connection_threads");
+        connectionExecutor = Executors.newFixedThreadPool(threads);
     }
 
     @Override

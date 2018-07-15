@@ -3,6 +3,7 @@ package cascade.core;
 import cascade.core.backend.ServerBackend;
 import protocol.connection.AuthenticationType;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 
@@ -17,14 +18,20 @@ public class CascadeServer {
      * @param type     the auth type.
      * @param password the password.
      */
-    public static void start(int port, AuthenticationType type, String password) {
+    public static void start(int port, AuthenticationType type, String password, String configFile) {
+
+        File file = new File(configFile);
+        if (!file.exists()) {
+            log(configFile + " does not exist! Exiting...", LogLevel.ERROR);
+            System.exit(0);
+        }
 
         backend = new ServerBackend(type, password);
         log("Attempting to bind to port: " + port + ".", LogLevel.INFO);
         ServerSocket socket;
         try {
             socket = new ServerSocket(port);
-            backend.start(socket);
+            backend.start(socket, file);
         } catch (IOException exception) {
             log("Failed to bind to port: " + port + ".", LogLevel.ERROR);
             System.exit(0);
@@ -38,14 +45,20 @@ public class CascadeServer {
      * @param port the port
      * @param type the auth type.
      */
-    public static void start(int port, AuthenticationType type) {
+    public static void start(int port, AuthenticationType type, String configFile) {
+
+        File file = new File(configFile);
+        if (!file.exists()) {
+            log(configFile + " does not exist! Exiting...", LogLevel.ERROR);
+            System.exit(0);
+        }
 
         backend = new ServerBackend(type);
         log("Attempting to bind to port: " + port + ".", LogLevel.INFO);
         ServerSocket socket;
         try {
             socket = new ServerSocket(port);
-            backend.start(socket);
+            backend.start(socket, file);
         } catch (IOException exception) {
             log("Failed to bind to port: " + port + ".", LogLevel.ERROR);
             System.exit(0);
