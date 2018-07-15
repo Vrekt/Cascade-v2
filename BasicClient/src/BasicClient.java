@@ -95,14 +95,23 @@ public class BasicClient {
             if (authPacket.getType() == AuthenticationType.BASIC || authPacket.getType() == AuthenticationType.NONE) {
                 out.writeObject(new PacketMessage(username));
                 PacketConnectionStatus connectionStatus = (PacketConnectionStatus) in.readObject();
-                if (connectionStatus.getConnectionStatus() != ConnectionStatus.CONNECTED) {
+                if (connectionStatus.getConnectionStatus() == ConnectionStatus.AUTHENTICATING) {
+                    System.out.println("Authenticating...");
+                } else if (connectionStatus.getConnectionStatus() == ConnectionStatus.DISCONNECTED) {
                     System.out.println("Could not connect.");
                     System.exit(0);
                 }
-            }
 
-            lastSent = System.currentTimeMillis();
-            connected();
+                PacketConnectionStatus connectionStatus2 = (PacketConnectionStatus) in.readObject();
+                if (connectionStatus2.getConnectionStatus() == ConnectionStatus.CONNECTED) {
+                    lastSent = System.currentTimeMillis();
+                    connected();
+                } else if (connectionStatus2.getConnectionStatus() == ConnectionStatus.DISCONNECTED) {
+                    System.out.println("Could not connect.");
+                    System.exit(0);
+                }
+
+            }
 
         } catch (IOException | ClassNotFoundException exception) {
             System.out.println("Could not connect.");
