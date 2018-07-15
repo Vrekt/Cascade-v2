@@ -157,7 +157,7 @@ public class BasicClient {
                         Thread.sleep(100);
                     }
                     String message = reader.readLine();
-                    send(new PacketMessage(message, username, -1));
+                    send(new PacketMessage(message, username));
                 } catch (IOException | InterruptedException exception) {
                     System.out.println("There was an error receiving input.");
                 }
@@ -167,6 +167,11 @@ public class BasicClient {
 
     }
 
+    /**
+     * Send a packet to the server.
+     *
+     * @param packet the packet.
+     */
     private void send(Packet packet) {
         try {
             out.writeObject(packet);
@@ -175,6 +180,9 @@ public class BasicClient {
         }
     }
 
+    /**
+     * Disconnect from the server.
+     */
     private void disconnect() {
         connected = false;
         System.out.println("Lost connection to the server. ");
